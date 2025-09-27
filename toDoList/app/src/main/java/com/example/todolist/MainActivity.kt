@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -33,14 +32,21 @@ fun TodoApp(repository: TodoRepository) {
     var text by remember { mutableStateOf("") }
     var todos by remember { mutableStateOf(listOf<String>()) }
 
+    // 每个 todo 的完成状态
+    var completedStates by remember { mutableStateOf(mapOf<String, Boolean>()) }
+
+    val scope = rememberCoroutineScope()
+
     // 启动时从 DataStore 读取
     LaunchedEffect(Unit) {
         repository.todosFlow.collectLatest { storedTodos ->
             todos = storedTodos
+            // 仅在 completedStates 为空时初始化，保留已有状态
+            completedStates = storedTodos.associateWith { existing ->
+                completedStates[existing] ?: false
+            }
         }
     }
-
-    val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier
         .fillMaxSize()
@@ -60,6 +66,8 @@ fun TodoApp(repository: TodoRepository) {
             Button(onClick = {
                 if (text.isNotBlank()) {
                     todos = todos + text
+                    // 只为新条目添加状态，保留旧状态
+                    completedStates = completedStates + (text to false)
                     scope.launch {
                         repository.saveTodos(todos)
                     }
@@ -74,26 +82,52 @@ fun TodoApp(repository: TodoRepository) {
 
         LazyColumn {
             items(todos) { todo ->
-                TodoItem(todo = todo) {
-                    todos = todos - todo
-                    scope.launch {
-                        repository.saveTodos(todos)
+                TodoItem(
+                    todo = todo,
+                    completed = completedStates[todo] ?: false,
+                    onCheckedChange = { isChecked ->
+                        completedStates = completedStates + (todo to isChecked)
+                    },
+                    onDelete = {
+                        todos = todos - todo
+                        completedStates = completedStates - todo
+                        scope.launch {
+                            repository.saveTodos(todos)
+                        }
                     }
-                }
+                )
             }
         }
     }
 }
 
 @Composable
-fun TodoItem(todo: String, onDelete: () -> Unit) {
+fun TodoItem(
+    todo: String,
+    completed: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onDelete: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(todo)
+        Row {
+            Checkbox(
+                checked = completed,
+                onCheckedChange = onCheckedChange
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = todo,
+                style = if (completed) MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.primary
+                ) else MaterialTheme.typography.bodyLarge
+            )
+        }
+
         Button(onClick = onDelete) {
             Text("删除")
         }
