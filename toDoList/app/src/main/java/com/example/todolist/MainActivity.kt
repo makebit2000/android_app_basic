@@ -26,7 +26,7 @@ class TodoRepository(private val context: Context) {
 
     private val TODOS_KEY = stringSetPreferencesKey("todos_set")
 
-    // 获取 todo 列表
+    // Hole die Todo-Liste
     val todosFlow: Flow<List<TodoItemData>> = context.dataStore.data
         .map { prefs ->
             prefs[TODOS_KEY]?.mapNotNull { item ->
@@ -39,7 +39,7 @@ class TodoRepository(private val context: Context) {
             } ?: emptyList()
         }
 
-    // 保存 todo 列表
+    // Speichere die gesamte Todo-Liste
     suspend fun saveTodos(todos: List<TodoItemData>) {
         context.dataStore.edit { prefs ->
             val stringSet = todos.map { "${it.text}|${it.completed}" }.toSet()
@@ -71,7 +71,7 @@ fun TodoApp(repository: TodoRepository) {
 
     val scope = rememberCoroutineScope()
 
-    // 启动时加载数据
+    // Lade die Daten beim Start
     LaunchedEffect(Unit) {
         repository.todosFlow.collect { storedTodos ->
             todos = storedTodos
@@ -82,12 +82,12 @@ fun TodoApp(repository: TodoRepository) {
         .fillMaxSize()
         .padding(16.dp)) {
 
-        // 输入框 + 添加按钮
+        // Eingabefeld + Hinzufügen-Button
         Row(modifier = Modifier.fillMaxWidth()) {
             TextField(
                 value = text,
                 onValueChange = { text = it },
-                placeholder = { Text("输入待办事项") },
+                placeholder = { Text("Neue Aufgabe eingeben") },
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
@@ -104,13 +104,13 @@ fun TodoApp(repository: TodoRepository) {
                     text = ""
                 }
             }) {
-                Text("添加")
+                Text("Hinzufügen")
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 待办列表
+        // Todo-Liste
         LazyColumn {
             items(todos) { todo ->
                 TodoItem(
@@ -159,7 +159,7 @@ fun TodoItem(
         }
 
         Button(onClick = onDelete) {
-            Text("删除")
+            Text("Löschen")
         }
     }
 }
