@@ -1,0 +1,8 @@
+<resources>
+    <!-- App Theme -->
+    <style name="Theme.SimpleFileBrowser" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- 可以自定义你的颜色，如果不需要可以删掉 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+    </style>
+</resources>
