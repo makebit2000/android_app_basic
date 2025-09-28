@@ -1,0 +1,6 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- 改成 Material3 Light 主题 -->
+    <style name="Theme.FileBrowserMaterial3" parent="Theme.Material3.Light">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+</resources>
