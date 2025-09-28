@@ -1,69 +1,78 @@
 package com.example.weatherapp
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.Button
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.launch
 
 @Composable
-fun WeatherAppScreen() {
-    var city by remember { mutableStateOf(TextFieldValue("")) }
-    var weatherInfo by remember { mutableStateOf("请输入城市查询天气") }
+fun WeatherAppScreen(apiKey: String) {
+    var city by remember { mutableStateOf("") }
+    var weatherInfo by remember { mutableStateOf<WeatherResponse?>(null) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFBBDEFB))
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        Spacer(modifier = Modifier.height(20.dp))
-        Text(text = "天气查询 App", fontSize = 24.sp, color = Color.Black)
-        Spacer(modifier = Modifier.height(20.dp))
-
-        BasicTextField(
+        // Material2 输入框
+        TextField(
             value = city,
             onValueChange = { city = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(8.dp)
+            label = { Text("请输入城市名") },
+            modifier = Modifier.fillMaxWidth()
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 查询按钮
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    try {
+                        val result = WeatherRepository.api.getWeather(city, apiKey)
+                        weatherInfo = result
+                        errorMsg = null
+                    } catch (e: Exception) {
+                        weatherInfo = null
+                        errorMsg = "查询失败: ${e.message}"
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("查询天气")
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
-            // 模拟查询天气
-            weatherInfo = if (city.text.isNotBlank()) {
-                "城市: ${city.text}\n温度: 26°C\n晴"
-            } else {
-                "请输入城市名称"
+        // 显示天气信息
+        weatherInfo?.let { info ->
+            Text("城市: ${info.name}", fontSize = 20.sp)
+            Text("温度: ${info.main.temp} ℃", fontSize = 18.sp)
+            Text("描述: ${info.weather.firstOrNull()?.description ?: ""}", fontSize = 16.sp)
+            info.weather.firstOrNull()?.icon?.let { icon ->
+                Image(
+                    painter = rememberAsyncImagePainter(
+                        "https://openweathermap.org/img/wn/${icon}@2x.png"
+                    ),
+                    contentDescription = "天气图标",
+                    modifier = Modifier.size(100.dp)
+                )
             }
-        }) {
-            Text("查询")
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(text = weatherInfo, fontSize = 18.sp, color = Color.Black)
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Image(
-            painter = rememberAsyncImagePainter("https://openweathermap.org/img/wn/01d@2x.png"),
-            contentDescription = "天气图标",
-            modifier = Modifier.size(100.dp)
-        )
+        // 错误信息
+        errorMsg?.let {
+            Text(it, fontSize = 16.sp, color = MaterialTheme.colors.error)
+        }
     }
 }
